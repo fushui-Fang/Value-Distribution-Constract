@@ -1,0 +1,72 @@
+syntax = "proto3";  //指定版本，必须要写（proto3、proto2）  
+package lyan;
+
+message Account{
+    string addr = 1;        //账户地址
+    int64  kind = 2;         //账户类型
+    float balance = 3;      //余额
+    string pubkey =4;       //账户公钥
+    string ID = 5;            //指定账户分配策略ID
+}
+
+message AllocateSgy {
+    string ID = 1;                   //当前分配策略ID,由系统指定
+    string priorID = 2 ;             //前一个分配策略的ID
+    string addr = 3 ;               //对应的合约账户的地址
+    MemberInfo aSgy =4;             //分配策略
+    repeated bool hasSigned =5;     //是否签名
+    string hash =6;                 //AllocateSgy的SHA-1哈希值
+}
+
+message MemberInfo {
+    repeated MemberSingle ms= 1;
+}
+
+message MemberSingle {
+    int64 sequence =1;      //成员序号
+    string addr =2 ;        //成员地址
+    float ort = 3 ;         //分配比例
+}
+
+
+
+//用户分配策略信息
+message SigeForSgyInfo {
+    string addr =1 ;        //签名的用户地址
+    string ID =2 ;           //对应的分配策略ID
+    int64 seq =3 ;       //在该分配合约的账号
+    int64 timestamp = 4;        //时间戳
+    float ort =5;           //分配比例 
+}
+
+message SigeForSgy{
+    SigeForSgyInfo si =1;   
+    string script =2;
+}
+
+message SigeForSgyStub{
+    repeated SigeForSgy set =1;
+}
+
+
+
+
+message TranferOutput {
+    string outAddr = 1;     // 输出的交易地址
+    float outNum =2;        // 转移的价值数量
+}
+
+message TxInfo {
+        int64 timestamp = 1;        //时间戳
+        string inputAddr = 2;       //输入地址
+        float inputBalance = 3;     //输入价值
+        float nounce = 4;           //随机数=输入价值+人数
+        repeated TranferOutput output = 5;     //价值输出
+        string info = 6;            //交易信息
+}
+
+message TX {
+    TxInfo tx = 1;      //交易信息
+    string script =2;   //签名
+}
+
