@@ -99,13 +99,15 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 		return shim.Error("[createContractAcount]:不合法的分配策略，总和不为1")
 	}
 
-	//验证合约账户的完整性
-	sgyInfo, _ := proto.Marshal(aSgy.ASgy)
-	err = VerifyHashdata(sgyInfo, crypto.SHA1, aSgy.Hash)
-	if err != nil {
-		logger.Error("[createContractAcount]:" + err.Error())
-		return shim.Error("[createContractAcount]:" + err.Error())
-	}
+	/*
+		//验证合约账户的完整性
+		sgyInfo, _ := proto.Marshal(aSgy.ASgy)
+		err = VerifyHashdata(sgyInfo, crypto.SHA1, aSgy.Hash)
+		if err != nil {
+			logger.Error("[createContractAcount]:" + err.Error())
+			return shim.Error("[createContractAcount]:" + err.Error())
+		}
+	*/
 
 	//验证账户签名
 	err = InitVerifySgySigned(s.stub, aSgy, s.args[2])
@@ -298,6 +300,7 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 	}
 
 	//验证成员是否更改以及ort总和是否为1
+	hashSigned := []bool{}
 	var sum float32
 	for _, r := range asgy.ASgy.Ms {
 		sum += r.Ort
@@ -307,6 +310,7 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 			logger.Error("[createContractAcount]:成员地址与原来的不符")
 			return shim.Error("[createContractAcount]:成员地址与原来的不符")
 		}
+		hashSigned = append(hashSigned, false)
 	}
 	if sum != 1 {
 		logger.Error("[createContractAcount]:不合法的分配策略，总和不为1")
@@ -328,5 +332,20 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 
 	//接下来要完成的部分：讲这个提议存下来，创建新的未签名的分配策略
 
-	return shim.Success(nil)
+	id := s.stub.GetTxID()
+	asgy = &AllocateSgy{
+		ID:        id,
+		PriorID:   asgyp.Asgip.PriorID,
+		Addr:      asgyp.Asgip.ContractAddr,
+		ASgy:      asgyp.Asgip.Mi,
+		HasSigned: hashSigned,
+	}
+
+	err = putAsgy(asgy, s.stub)
+	if err != nil {
+		logger.Error("[modifyAllocateByUser]:" + err.Error())
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success([]byte(id))
 }

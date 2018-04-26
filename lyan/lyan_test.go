@@ -85,6 +85,7 @@ func checckTransfer(t *testing.T, stub *shim.MockStub, args [][]byte, addr strin
 	if bytes == nil {
 		fmt.Println("State", name, "failed to get account info")
 		t.FailNow()
+
 	}
 	userdata := &TX{}
 	err := proto.Unmarshal(bytes, userdata)
@@ -225,9 +226,11 @@ func TestTransfer(t *testing.T) {
 		HasSigned: []bool{false, false},
 	}
 
-	//对分配策略求hash
-	zhongjian, _ := proto.Marshal(testSgy.ASgy)
-	testSgy.Hash = hashData(zhongjian, crypto.SHA1)
+	/*
+		//对分配策略求hash
+		zhongjian, _ := proto.Marshal(testSgy.ASgy)
+		testSgy.Hash = hashData(zhongjian, crypto.SHA1)
+	*/
 
 	testSgyProto, _ := proto.Marshal(testSgy)
 

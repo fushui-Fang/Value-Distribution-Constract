@@ -15,7 +15,6 @@ message AllocateSgy {
     string addr = 3 ;               //对应的合约账户的地址
     MemberInfo aSgy =4;             //分配策略
     repeated bool hasSigned =5;     //是否签名
-    string hash =6;                 //AllocateSgy的SHA-1哈希值
 }
 
 message MemberInfo {

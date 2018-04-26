@@ -53,7 +53,7 @@ func putAccount(key string, account *Account, stub shim.ChaincodeStubInterface) 
 func praseAsgy(id string, addr string, stub shim.ChaincodeStubInterface) (*AllocateSgy, error) {
 	aSgyKey, err := stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{id, addr})
 	if err != nil {
-		logger.Debug("transfer2ContractAccount: somthing wrong in CreateCompositeKey" + err.Error())
+		logger.Debug("praseAsgy: somthing wrong in CreateCompositeKey" + err.Error())
 		return nil, err
 	}
 
@@ -62,11 +62,26 @@ func praseAsgy(id string, addr string, stub shim.ChaincodeStubInterface) (*Alloc
 	aSgy := &AllocateSgy{}
 	err = proto.Unmarshal(aSgyProto, aSgy)
 	if err != nil {
-		logger.Debug("transfer2ContractAccount: somthing wrong in proto.Unmarshal" + err.Error())
+		logger.Debug("praseAsgy: somthing wrong in proto.Unmarshal" + err.Error())
 		return nil, err
 	}
 
 	return aSgy, nil
+}
+
+func putAsgy(aSgy *AllocateSgy, stub shim.ChaincodeStubInterface) error {
+	aSgyKey, err := stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{aSgy.ID, aSgy.Addr})
+	if err != nil {
+		logger.Debug("putAsgy: somthing wrong in CreateCompositeKey" + err.Error())
+		return err
+	}
+	aSgyProto, _ := proto.Marshal(aSgy)
+
+	err = stub.PutState(aSgyKey, aSgyProto)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //===============================================================================
