@@ -126,7 +126,7 @@ func (s *chainCodeHub) transfer() pb.Response {
 	}
 
 	//将本次交易信息记录下来
-	TxKey, err := s.stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{s.stub.GetTxID(), addr})
+	TxKey, err := s.stub.CreateCompositeKey(TxCompositeKeyIndexName, []string{s.stub.GetTxID(), addr})
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -136,7 +136,9 @@ func (s *chainCodeHub) transfer() pb.Response {
 		return shim.Error(err.Error())
 	}
 
-	return shim.Success(nil)
+	logger.Debug("transfer ID is:" + s.stub.GetTxID())
+	//将转账id返回作为参考
+	return shim.Success([]byte(s.stub.GetTxID()))
 }
 
 func transfer2ContractAccount(in *Account, out *Account, num float32, stub shim.ChaincodeStubInterface) error {
