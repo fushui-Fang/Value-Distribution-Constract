@@ -57,15 +57,16 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 	}
 
 	//获取当前txID
-	aSgyID := s.stub.GetTxID()
-	logger.Debug("[createContractAcount]:TxID is " + aSgyID)
+	aSgyID := "0"
+	//logger.Debug("[createContractAcount]:TxID is " + aSgyID)
 
+	//为了方便后面的签名检查，在这里把合约的初始策略设置为0
 	account := &Account{
 		Addr:    addr,
 		Kind:    ContractUser,
 		Balance: 0,
 		Pubkey:  "0",
-		ID:      aSgyID,
+		ID:      "0",
 	}
 
 	//接收传来的策略
@@ -128,8 +129,8 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 	if err != nil {
 		return shim.Error(err.Error())
 	}
-	aSgy.ID = aSgyID
-	aSgy.PriorID = aSgyID
+	aSgy.ID = "0"
+	aSgy.PriorID = "0"
 
 	aSgyProto, _ = proto.Marshal(aSgy)
 	err = s.stub.PutState(aSgyKey, aSgyProto)

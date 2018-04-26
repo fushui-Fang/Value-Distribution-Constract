@@ -33,7 +33,7 @@ func (s *chainCodeHub) transfer() pb.Response {
 		return shim.Error("[transfer()]error happens when try to decode base64String")
 	}
 
-	//获取地址
+	//获取输入的proto信息
 	addr := txOrgin.Tx.InputAddr
 	accountProto, err := s.stub.GetState(addr)
 
@@ -86,7 +86,6 @@ func (s *chainCodeHub) transfer() pb.Response {
 	}
 
 	//验证是否有这么多钱
-
 	if account.GetBalance() < outbalance {
 		logger.Error(errors.New("[transfer()]没那么多钱").Error())
 		return shim.Error("[transfer()]没那么多钱")
@@ -105,8 +104,13 @@ func (s *chainCodeHub) transfer() pb.Response {
 			return shim.Error("[transfer()]error happens when try to Unmarshal account")
 		}
 
+		//合约用户转账地址
 		if outAccount.GetKind() != NormolUser {
-			logger.Debug("[transfer()] 合约账户的代码还没还是进行，先空着")
+			err = transfer2ContractAccount(account, outAccount, out.OutNum, s.stub)
+			if err != nil {
+				return shim.Error(err.Error())
+			}
+			//logger.Debug("[transfer()] 合约账户的代码还没还是进行，先空着")
 			continue
 		}
 
@@ -121,5 +125,64 @@ func (s *chainCodeHub) transfer() pb.Response {
 
 	}
 
+	//将本次交易信息记录下来
+	TxKey, err := s.stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{s.stub.GetTxID(), addr})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = s.stub.PutState(TxKey, txBase64)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
 	return shim.Success(nil)
+}
+
+func transfer2ContractAccount(in *Account, out *Account, num float32, stub shim.ChaincodeStubInterface) error {
+	//在输入账号减去这么多的金额，
+
+	//获取分配策略key
+	aSgyKey, err := stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{out.ID, out.Addr})
+	if err != nil {
+		logger.Debug("transfer2ContractAccount: somthing wrong in CreateCompositeKey" + err.Error())
+		return err
+	}
+
+	//获取分配策略
+	aSgyProto, err := stub.GetState(aSgyKey)
+	aSgy := &AllocateSgy{}
+	err = proto.Unmarshal(aSgyProto, aSgy)
+	if err != nil {
+		logger.Debug("transfer2ContractAccount: somthing wrong in proto.Unmarshal" + err.Error())
+		return err
+	}
+
+	//遍历给out中的地址按比例增加收入
+	for _, outSingleMemberInfo := range aSgy.ASgy.Ms {
+		//取出账户
+		outAccount, err := praseAccount(outSingleMemberInfo.Addr, stub)
+		if err != nil {
+			logger.Debug(err.Error())
+			return err
+		}
+
+		//修改余额
+		outAccount.Balance += num * outSingleMemberInfo.Ort
+
+		//存入账户
+		err = putAccount(outAccount.Addr, outAccount, stub)
+		if err != nil {
+			return err
+		}
+
+	}
+	//logger.Debug("come here!")
+	in, _ = praseAccount(in.Addr, stub)
+
+	in.Balance -= num
+	inProto, _ := proto.Marshal(in)
+	stub.PutState(in.Addr, inProto)
+
+	return nil
 }

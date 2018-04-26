@@ -30,7 +30,8 @@ func checkAcount(t *testing.T, stub *shim.MockStub, name string, balance string,
 	userdata := &Account{}
 	err := proto.Unmarshal(bytes, userdata)
 	if err != nil {
-		panic(err)
+		fmt.Println("State", name, "failed to Unmarshal account info")
+		t.FailNow()
 	}
 
 	fmt.Println("/*****************check user********************/")
@@ -201,6 +202,7 @@ func TestTransfer(t *testing.T) {
 	testSgy := &AllocateSgy{
 		Addr:      conAddr,
 		ASgy:      tOrtinfo,
+		ID:        "0",
 		HasSigned: []bool{false, false},
 	}
 
@@ -250,4 +252,51 @@ func TestTransfer(t *testing.T) {
 
 	chechContractAcountCreating(t, stub, [][]byte{[]byte("createContractAcount"), []byte(conAddr), []byte(testSgyProtoBase64String), []byte(testSgySignedStubProtoBase64)})
 	checkAcount(t, stub, conAddr, "0", 1)
+
+	//对合约地址进行转账
+
+	out = []*TranferOutput{{conAddr, 100}}
+	txInfo = &TxInfo{
+		Timestamp:    time.Now().UTC().Unix(),
+		InputAddr:    Org1Addr,
+		InputBalance: 100,
+		Nounce:       100,
+		Output:       out,
+		Info:         "test transfer",
+	}
+
+	//获取交易的proto编码
+	txInfoProto, err = proto.Marshal(txInfo)
+	if err != nil {
+		fmt.Println("[TestTransfer]" + err.Error())
+		t.FailNow()
+	}
+
+	//进行签名
+	txInfoProtoScript, err = signMessage(txInfoProto, Org1priKey, crypto.SHA1)
+	if err != nil {
+		fmt.Println("[TestTransfer]" + err.Error())
+		t.FailNow()
+	}
+
+	err = VerifySign(string(Org1pubKey), txInfoProto, txInfoProtoScript, crypto.SHA1)
+	if err != nil {
+		fmt.Println("[TestTransfer]" + err.Error())
+		t.FailNow()
+	}
+
+	txExample = &TX{
+		Tx:     txInfo,
+		Script: string(txInfoProtoScript),
+	}
+
+	txExampleProto, _ = proto.Marshal(txExample)
+
+	txExampleProtoString = base64.StdEncoding.EncodeToString(txExampleProto)
+	checkAcount(t, stub, Org1Addr, "900", 0)
+	checkAcount(t, stub, Org2Addr, "334", 0)
+	checckTransfer(t, stub, [][]byte{[]byte("transfer"), []byte(txExampleProtoString)})
+	checkAcount(t, stub, Org1Addr, "890", 0)
+	checkAcount(t, stub, Org2Addr, "344", 0)
+
 }

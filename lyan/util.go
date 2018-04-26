@@ -134,21 +134,23 @@ func InitVerifySgySigned(stub shim.ChaincodeStubInterface, m *AllocateSgy, signS
 
 func VerifySgySingleSigned(stub shim.ChaincodeStubInterface, m *AllocateSgy, singleSigned *SigeForSgy) error {
 	seq := singleSigned.Si.Seq
-	logger.Debug("序号是")
-	logger.Debug(seq)
+	//logger.Debug("序号是")
+	//logger.Debug(seq)
 
 	//基本信息确认
 	if singleSigned.Si.Ort != m.ASgy.Ms[seq].Ort ||
 		seq != m.ASgy.Ms[seq].Sequence ||
 		singleSigned.Si.Addr != m.ASgy.Ms[seq].Addr ||
-		singleSigned.Si.ID != "0" {
+		singleSigned.Si.ID != m.GetID() {
 		logger.Debug("签名信息中:")
 		logger.Debug(singleSigned.Si.Ort)
 		logger.Debug(singleSigned.Si.Addr)
+		logger.Debug(singleSigned.Si.ID)
 
 		logger.Debug("分配策略中:")
 		logger.Debug(m.ASgy.Ms[seq].Ort)
 		logger.Debug(m.ASgy.Ms[seq].Addr)
+		logger.Debug(m.ID)
 
 		return errors.New("[VerifySgySigned]:基本信息没有对上")
 	}

@@ -21,5 +21,5 @@ const (
 
 	//UserSiganedindexName 表示创建签名存档复合键时的indexName
 	UserSiganedindexName      = "userSignedMessage"
-	ASgyCompositeKeyIndexName = "userSignedMessage"
+	ASgyCompositeKeyIndexName = "ASgyCompositeKeyIndexName"
 )
