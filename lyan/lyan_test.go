@@ -34,14 +34,14 @@ func checkAcount(t *testing.T, stub *shim.MockStub, name string, balance string,
 		t.FailNow()
 	}
 
-	fmt.Println("/*****************check user********************/")
+	fmt.Println("\n/*****************check user********************/")
 	fmt.Println("get:" + userdata.GetAddr())
 	fmt.Printf("balance: %f\n", userdata.GetBalance())
 	fmt.Println("balance wanted : " + balance)
 	fmt.Printf("get kind: %d\n", userdata.GetKind())
 	fmt.Printf("kind wanted: %d\n", kind)
 	fmt.Printf("ID %s \n", userdata.GetID())
-	fmt.Println("/***********************************************/")
+	fmt.Println("/***********************************************/\n")
 }
 
 func checkQueryAccount(t *testing.T, stub *shim.MockStub, args [][]byte) {
@@ -315,7 +315,7 @@ func TestTransfer(t *testing.T) {
 	checkAcount(t, stub, Org1Addr, "900", 0)
 	checkAcount(t, stub, Org2Addr, "334", 0)
 	checckTransfer(t, stub, [][]byte{[]byte("transfer"), []byte(txExampleProtoString)}, Org1Addr)
-	//checkAcount(t, stub, Org1Addr, "890", 0)
-	//checkAcount(t, stub, Org2Addr, "344", 0)
+	checkAcount(t, stub, Org1Addr, "890", 0)
+	checkAcount(t, stub, Org2Addr, "344", 0)
 
 }

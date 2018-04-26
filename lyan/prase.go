@@ -50,6 +50,25 @@ func putAccount(key string, account *Account, stub shim.ChaincodeStubInterface) 
 	return nil
 }
 
+func praseAsgy(id string, addr string, stub shim.ChaincodeStubInterface) (*AllocateSgy, error) {
+	aSgyKey, err := stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{id, addr})
+	if err != nil {
+		logger.Debug("transfer2ContractAccount: somthing wrong in CreateCompositeKey" + err.Error())
+		return nil, err
+	}
+
+	//获取分配策略
+	aSgyProto, err := stub.GetState(aSgyKey)
+	aSgy := &AllocateSgy{}
+	err = proto.Unmarshal(aSgyProto, aSgy)
+	if err != nil {
+		logger.Debug("transfer2ContractAccount: somthing wrong in proto.Unmarshal" + err.Error())
+		return nil, err
+	}
+
+	return aSgy, nil
+}
+
 //===============================================================================
 //解析base64
 //目的：为了避免将来因为编码处理不同的问题，在这里统一处理，方便修改

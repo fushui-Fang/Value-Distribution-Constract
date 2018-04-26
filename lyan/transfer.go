@@ -144,22 +144,11 @@ func (s *chainCodeHub) transfer() pb.Response {
 func transfer2ContractAccount(in *Account, out *Account, num float32, stub shim.ChaincodeStubInterface) error {
 	//在输入账号减去这么多的金额，
 
-	//获取分配策略key
-	aSgyKey, err := stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{out.ID, out.Addr})
-	if err != nil {
-		logger.Debug("transfer2ContractAccount: somthing wrong in CreateCompositeKey" + err.Error())
-		return err
-	}
-
 	//获取分配策略
-	aSgyProto, err := stub.GetState(aSgyKey)
-	aSgy := &AllocateSgy{}
-	err = proto.Unmarshal(aSgyProto, aSgy)
+	aSgy, err := praseAsgy(out.ID, out.Addr, stub)
 	if err != nil {
-		logger.Debug("transfer2ContractAccount: somthing wrong in proto.Unmarshal" + err.Error())
 		return err
 	}
-
 	//遍历给out中的地址按比例增加收入
 	for _, outSingleMemberInfo := range aSgy.ASgy.Ms {
 		//取出账户

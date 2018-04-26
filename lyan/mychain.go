@@ -21,6 +21,7 @@ type store interface {
 	createAccount() pb.Response
 	queryAccount() pb.Response
 	transfer() pb.Response
+	querySgyByID() pb.Response
 }
 
 //============================================================================================
@@ -199,4 +200,27 @@ func (s *chainCodeHub) queryAccount() pb.Response {
 	logger.Debug(" [queryAcount get by data ] addr [%v]", qAcount.GetAddr())
 
 	return shim.Success([]byte(queryBase64String))
+}
+
+//==============================================================================================
+// 根据地址和ID查询分配策略
+//	参数  1 id 2 addr
+//==============================================================================================
+func (s *chainCodeHub) querySgyByID() pb.Response {
+	//获取 分配策略的KEY
+	id := s.args[0]
+	addr := s.args[1]
+	aSgyKey, err := s.stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{id, addr})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	aSgyProto, err := s.stub.GetState(aSgyKey)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	aSgyBase64 := base64.StdEncoding.EncodeToString(aSgyProto)
+
+	return shim.Success([]byte(aSgyBase64))
 }
