@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/base64"
 	"errors"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
@@ -241,7 +242,7 @@ func (s *chainCodeHub) queryCurrentSgyID() pb.Response {
 //==============================================================================================
 // 提供新的未签名的策略集
 //	参数 1 提出的策略的结构体
-//
+//	返回处理结果
 //==============================================================================================
 
 func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
@@ -265,6 +266,17 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
 	}
 
+	//是否在最新的策略上更改
+	conAccount, err := praseAccount(asgyp.Asgip.ContractAddr, s.stub)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
+	}
+	if conAccount.ID != asgyp.Asgip.PriorID {
+		logger.Debug("[modifyAllocateByUser]:没有在最新策略上更改")
+		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
+	}
+
 	//验证账号签名
 	asgyInfoProto, err := proto.Marshal(asgyp.Asgip)
 	if err != nil {
@@ -284,6 +296,37 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 		logger.Debug("[modifyAllocateByUser]" + err.Error())
 		return shim.Error("[modifyAllocateByUser]获取前置策略失败")
 	}
+
+	//验证成员是否更改以及ort总和是否为1
+	var sum float32
+	for _, r := range asgy.ASgy.Ms {
+		sum += r.Ort
+		seq := r.Sequence
+		mem := asgyp.Asgip.Mi.Ms[seq]
+		if mem.Addr != r.Addr {
+			logger.Error("[createContractAcount]:成员地址与原来的不符")
+			return shim.Error("[createContractAcount]:成员地址与原来的不符")
+		}
+	}
+	if sum != 1 {
+		logger.Error("[createContractAcount]:不合法的分配策略，总和不为1")
+		return shim.Error("[createContractAcount]:不合法的分配策略，总和不为1")
+	}
+
+	//验证成员是否有资格创建相关的策略
+	seq := asgyp.Asgip.Seq
+	if asgy.ASgy.Ms[seq].Addr != asgyp.Asgip.UserAddr {
+		logger.Error("[modifyAllocateByUser]:签名账户不在对应的序列表中或者序列号错误")
+		return shim.Error("[modifyAllocateByUser]签名账户不在对应的序列表中或者序列号错误")
+	}
+
+	//验证时间戳是否过期
+	if time.Now().UTC().Unix()-asgyp.Asgip.Timestamp > 120 {
+		logger.Error("[modifyAllocateByUser]:时间戳超时")
+		return shim.Error("[modifyAllocateByUser]时间戳超时")
+	}
+
+	//接下来要完成的部分：讲这个提议存下来，创建新的未签名的分配策略
 
 	return shim.Success(nil)
 }
