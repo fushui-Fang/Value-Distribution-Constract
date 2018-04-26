@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"strconv"
 
-	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
@@ -33,13 +32,11 @@ func (t *MyChaincode) initEnv(stub shim.ChaincodeStubInterface, args []string) e
 		ID:      "0",
 	}
 
-	x, err := proto.Marshal(org1Account)
+	err = putAccount(org1Account.Addr, org1Account, stub)
 	if err != nil {
 		logger.Debugf("can't  marshal the org1Account")
 		return ErrInit
 	}
-	stub.PutState(org1Addr, x)
-
 	//设置ORG1的结构体,并存入ledger中
 
 	org2Pubkey := args[2]
@@ -54,12 +51,11 @@ func (t *MyChaincode) initEnv(stub shim.ChaincodeStubInterface, args []string) e
 		ID:      "0",
 	}
 
-	x, err = proto.Marshal(org2Account)
+	err = putAccount(org2Account.Addr, org2Account, stub)
 	if err != nil {
-		logger.Debugf("can't  marshal the org1Account")
+		logger.Debugf("can't  marshal the org2Account")
 		return ErrInit
 	}
-	stub.PutState(org2Addr, x)
 
 	return nil
 }

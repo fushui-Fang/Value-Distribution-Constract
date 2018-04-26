@@ -94,15 +94,8 @@ func (s *chainCodeHub) transfer() pb.Response {
 	//接下来是转账
 	//如果是普通用户则正常转账，合约用户则随意转
 	for _, out := range txOrgin.Tx.GetOutput() {
-		outAddr := out.GetOutAddr()
-		outAccountProto, err := s.stub.GetState(outAddr)
-
-		outAccount := &Account{}
-		err = proto.Unmarshal(outAccountProto, outAccount)
-		if err != nil {
-			logger.Debug("[transfer()]" + err.Error())
-			return shim.Error("[transfer()]error happens when try to Unmarshal account")
-		}
+		outAddr := out.OutAddr
+		outAccount, err := praseAccount(outAddr, s.stub)
 
 		//合约用户转账地址
 		if outAccount.GetKind() != NormolUser {
@@ -114,16 +107,13 @@ func (s *chainCodeHub) transfer() pb.Response {
 			continue
 		}
 
-		account.Balance -= out.OutNum
 		outAccount.Balance += out.OutNum
-
-		outAccountProto, _ = proto.Marshal(outAccount)
-		s.stub.PutState(outAddr, outAccountProto)
-
-		accountProto, _ := proto.Marshal(account)
-		s.stub.PutState(addr, accountProto)
-
+		putAccount(outAccount.Addr, outAccount, s.stub)
 	}
+	//更新输入账号信息
+	account, _ = praseAccount(account.Addr, s.stub)
+	account.Balance -= outbalance
+	putAccount(account.Addr, account, s.stub)
 
 	//将本次交易信息记录下来
 	TxKey, err := s.stub.CreateCompositeKey(TxCompositeKeyIndexName, []string{s.stub.GetTxID(), addr})
@@ -151,29 +141,18 @@ func transfer2ContractAccount(in *Account, out *Account, num float32, stub shim.
 	}
 	//遍历给out中的地址按比例增加收入
 	for _, outSingleMemberInfo := range aSgy.ASgy.Ms {
-		//取出账户
 		outAccount, err := praseAccount(outSingleMemberInfo.Addr, stub)
 		if err != nil {
 			logger.Debug(err.Error())
 			return err
 		}
 
-		//修改余额
 		outAccount.Balance += num * outSingleMemberInfo.Ort
 
-		//存入账户
 		err = putAccount(outAccount.Addr, outAccount, stub)
 		if err != nil {
 			return err
 		}
-
 	}
-	//logger.Debug("come here!")
-	in, _ = praseAccount(in.Addr, stub)
-
-	in.Balance -= num
-	inProto, _ := proto.Marshal(in)
-	stub.PutState(in.Addr, inProto)
-
 	return nil
 }

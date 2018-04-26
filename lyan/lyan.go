@@ -48,6 +48,12 @@ func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return s.transfer()
 		//价值转移，先写未完成版
 
+	case "queryAsgyByID":
+		return s.querySgyByID()
+		//通过ID 和地址查询某一分配策略
+
+	case "queryCurrentSgyID":
+
 	default:
 		logger.Error(ErrInvalidFunction.Error())
 		return shim.Error(ErrInvalidFunction.Error())

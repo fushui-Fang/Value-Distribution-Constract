@@ -22,6 +22,7 @@ type store interface {
 	queryAccount() pb.Response
 	transfer() pb.Response
 	querySgyByID() pb.Response
+	queryCurrentSgyID() pb.Response
 }
 
 //============================================================================================
@@ -72,16 +73,6 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 
 	//接收传来的策略
 	aSgy := &AllocateSgy{}
-	/*
-			message AllocateSgy {
-		    string ID = 1;                   //当前分配策略ID,由系统指定
-		    string priorID = 2 ;             //前一个分配策略的ID
-		    string addr = 3 ;               //对应的合约账户的地址
-		    MemberInfo aSgy =4;             //分配策略
-		    repeated bool hasSigned =5;     //是否签名
-		    string hash =6;                 //AllocateSgy的SHA-1哈希值
-		}
-	*/
 
 	//传来的数据先解码
 	aSgyProto, err := praseBase64String(s.args[1])
@@ -122,8 +113,11 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 	}
 
 	//建立合约账户
-	accountProto, _ := proto.Marshal(account)
-	s.stub.PutState(addr, accountProto)
+	err = putAccount(addr, account, s.stub)
+	if err != nil {
+		logger.Error("[createContractAcount]:" + err.Error())
+		return shim.Error("[createContractAcount]:" + err.Error())
+	}
 
 	//保存分配策略
 	aSgyKey, err := s.stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{aSgyID, addr})
@@ -205,11 +199,13 @@ func (s *chainCodeHub) queryAccount() pb.Response {
 //==============================================================================================
 // 根据地址和ID查询分配策略
 //	参数  1 id 2 addr
+//	返回参与结果的
 //==============================================================================================
 func (s *chainCodeHub) querySgyByID() pb.Response {
 	//获取 分配策略的KEY
 	id := s.args[0]
 	addr := s.args[1]
+
 	aSgyKey, err := s.stub.CreateCompositeKey(ASgyCompositeKeyIndexName, []string{id, addr})
 	if err != nil {
 		return shim.Error(err.Error())
@@ -223,4 +219,20 @@ func (s *chainCodeHub) querySgyByID() pb.Response {
 	aSgyBase64 := base64.StdEncoding.EncodeToString(aSgyProto)
 
 	return shim.Success([]byte(aSgyBase64))
+}
+
+//==============================================================================================
+// 根据地址查询分配策略最新ID
+//	参数  1  addr
+//	返回策略ID
+//==============================================================================================
+func (s *chainCodeHub) queryCurrentSgyID() pb.Response {
+
+	account, err := praseAccount(s.args[0], s.stub)
+	if err != nil {
+		logger.Error("[queryCurrentSgyID]:" + err.Error())
+		return shim.Error("[queryCurrentSgyID]:" + err.Error())
+	}
+
+	return shim.Success([]byte(account.ID))
 }
