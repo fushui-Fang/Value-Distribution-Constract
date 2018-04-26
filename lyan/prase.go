@@ -80,3 +80,19 @@ func praseBase64String(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
 
 }
+
+//===============================================================================
+//解析AsgyProposeProto
+//目的：为了避免将来因为编码处理不同的问题，在这里统一处理，方便修改
+//===============================================================================
+func praseAsgyPropose(data []byte) (*ASgyPropose, error) {
+	if data == nil {
+		return nil, errors.New("[praseAsgyPropose]参数不正确")
+	}
+	x := &ASgyPropose{}
+	err := proto.Unmarshal(data, x)
+	if err != nil {
+		return nil, err
+	}
+	return x, nil
+}

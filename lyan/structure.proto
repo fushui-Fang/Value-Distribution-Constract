@@ -48,6 +48,22 @@ message SigeForSgyStub{
     repeated SigeForSgy set =1;
 }
 
+// 用以向系统提出新的分配策略
+message ASgyProposeInfo{
+    string  contractAddr =1 ;   //合约地址
+    string priorID  = 2 ;       //合约ID
+    string userAddr =3 ;        //用户地址
+    MemberInfo mi =4;         //分配策略
+    int64 timestamp =5;     //确定时间
+    int64 seq = 6;
+}
+
+message ASgyPropose{
+    ASgyProposeInfo asgip =1;
+    string script =2;
+}
+
+
 
 
 

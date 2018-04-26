@@ -15,7 +15,6 @@ func (t *MyChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 		return shim.Error(ErrInvalidArgs.Error())
 	}
 
-	//To Do list
 	//在这里考虑底层链码要实现什么功能
 	err := t.initEnv(stub, args)
 	if err != nil {
@@ -53,6 +52,11 @@ func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		//通过ID 和地址查询某一分配策略
 
 	case "queryCurrentSgyID":
+		return s.queryCurrentSgyID()
+		//查询某一合约账户的策略ID
+
+	case "modifyAllocateByUser":
+		return s.modifyAllocateByUser()
 
 	default:
 		logger.Error(ErrInvalidFunction.Error())

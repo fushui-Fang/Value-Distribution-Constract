@@ -23,6 +23,7 @@ type store interface {
 	transfer() pb.Response
 	querySgyByID() pb.Response
 	queryCurrentSgyID() pb.Response
+	modifyAllocateByUser() pb.Response
 }
 
 //============================================================================================
@@ -235,4 +236,54 @@ func (s *chainCodeHub) queryCurrentSgyID() pb.Response {
 	}
 
 	return shim.Success([]byte(account.ID))
+}
+
+//==============================================================================================
+// 提供新的未签名的策略集
+//	参数 1 提出的策略的结构体
+//
+//==============================================================================================
+
+func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
+	//数据解码
+	base64, err := praseBase64String(s.args[0])
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]error happens when try to decode base64String")
+	}
+
+	asgyp, err := praseAsgyPropose(base64)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
+	}
+
+	//获取用户账号信息
+	account, err := praseAccount(asgyp.Asgip.UserAddr, s.stub)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
+	}
+
+	//验证账号签名
+	asgyInfoProto, err := proto.Marshal(asgyp.Asgip)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]error happens when try to marshal proto")
+	}
+
+	err = VerifySign(account.Pubkey, asgyInfoProto, []byte(asgyp.Script), crypto.SHA1)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]策略签名未通过")
+	}
+
+	//校验是否存在这个用户在所添加的策略集里
+	asgy, err := praseAsgy(asgyp.Asgip.PriorID, asgyp.Asgip.ContractAddr, s.stub)
+	if err != nil {
+		logger.Debug("[modifyAllocateByUser]" + err.Error())
+		return shim.Error("[modifyAllocateByUser]获取前置策略失败")
+	}
+
+	return shim.Success(nil)
 }
