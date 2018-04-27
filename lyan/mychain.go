@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
@@ -50,6 +51,8 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 	addr := s.args[0]
 	res, _ := s.stub.GetState(addr)
 
+	fmt.Printf("\nconaddr  : %v\n", addr)
+
 	//账户是否已经存在以及账户地址是否是按照SHA1标准得来的
 	if res != nil {
 		logger.Error("[createContractAcount]:欲创建的合约账号已存在")
@@ -57,7 +60,9 @@ func (s *chainCodeHub) createContractAcount() pb.Response {
 	}
 	if len(addr) != 28 {
 		logger.Error("[createContractAcount]:欲创建的合约账户地址长度不对")
+		logger.Error("长度为" + addr)
 		return shim.Error("[createContractAcount]:欲创建的合约账户地址长度不对")
+
 	}
 
 	//获取当前txID
@@ -275,8 +280,10 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
 	}
 	if conAccount.ID != asgyp.Asgip.PriorID {
+		fmt.Print(conAccount.ID)
+		fmt.Print(asgyp.Asgip.PriorID)
 		logger.Debug("[modifyAllocateByUser]:没有在最新策略上更改")
-		return shim.Error("[modifyAllocateByUser]error happens when try to decode proto")
+		return shim.Error("[modifyAllocateByUser]没有在最新策略上更改")
 	}
 
 	//验证账号签名

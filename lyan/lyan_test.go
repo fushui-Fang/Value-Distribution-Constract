@@ -19,7 +19,7 @@ func checkInit(t *testing.T, stub *shim.MockStub, args [][]byte) {
 	}
 }
 
-func checkAcount(t *testing.T, stub *shim.MockStub, name string, balance string, kind int) {
+func checkAcount(t *testing.T, stub *shim.MockStub, name string, balance string, kind int) string {
 
 	bytes := stub.State[name]
 	if bytes == nil {
@@ -42,6 +42,8 @@ func checkAcount(t *testing.T, stub *shim.MockStub, name string, balance string,
 	fmt.Printf("kind wanted: %d\n", kind)
 	fmt.Printf("ID %s \n", userdata.GetID())
 	fmt.Println("/***********************************************/\n")
+	return userdata.ID
+
 }
 
 func checkQueryAccount(t *testing.T, stub *shim.MockStub, args [][]byte) {
@@ -98,15 +100,37 @@ func checckTransfer(t *testing.T, stub *shim.MockStub, args [][]byte, addr strin
 
 }
 
-func chechContractAcountCreating(t *testing.T, stub *shim.MockStub, args [][]byte) {
+func checkContractAcountCreating(t *testing.T, stub *shim.MockStub, args [][]byte) string {
+	logger.Debugf("chechContractAcountCreating args:%v", args)
 	res := stub.MockInvoke("1", args)
 	if res.Status != shim.OK {
-		fmt.Println("transfer", args, "failed", string(res.Message))
+		fmt.Println("chechContractAcountCreating", args, "failed", string(res.Message))
 		t.FailNow()
 	}
 	logger.Debugf("chechContractAcountCreating :%s", args[1])
-	checkAcount(t, stub, string(args[1]), string(0), 1)
+	id := checkAcount(t, stub, string(args[1]), string(0), 1)
+	logger.Debugf(string(res.Payload))
+	return id
+}
 
+func checkModifyAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) string {
+	res := stub.MockInvoke("1", args)
+	if res.Status != shim.OK {
+		fmt.Println("checkModifyAsgy", args, "failed", string(res.Message))
+		t.FailNow()
+	}
+
+	return string(res.Payload)
+}
+
+func checkAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) error {
+	res := stub.MockInvoke("1", args)
+	if res.Status != shim.OK {
+		fmt.Println("checkAsgy", args, "failed", string(res.Message))
+		t.FailNow()
+	}
+	logger.Debug("成功将策略提交")
+	return nil
 }
 
 //====================================================================================
@@ -140,6 +164,7 @@ func chechContractAcountCreating(t *testing.T, stub *shim.MockStub, args [][]byt
 
 */
 
+/*
 func TestTransfer(t *testing.T) {
 
 	//初始化以及获取公私钥
@@ -226,12 +251,6 @@ func TestTransfer(t *testing.T) {
 		HasSigned: []bool{false, false},
 	}
 
-	/*
-		//对分配策略求hash
-		zhongjian, _ := proto.Marshal(testSgy.ASgy)
-		testSgy.Hash = hashData(zhongjian, crypto.SHA1)
-	*/
-
 	testSgyProto, _ := proto.Marshal(testSgy)
 
 	testSgyProtoBase64String := base64.StdEncoding.EncodeToString(testSgyProto)
@@ -272,7 +291,7 @@ func TestTransfer(t *testing.T) {
 	testSgySignedStubProto, _ := proto.Marshal(testSgySignedStub)
 	testSgySignedStubProtoBase64 := base64.StdEncoding.EncodeToString(testSgySignedStubProto)
 
-	chechContractAcountCreating(t, stub, [][]byte{[]byte("createContractAcount"), []byte(conAddr), []byte(testSgyProtoBase64String), []byte(testSgySignedStubProtoBase64)})
+	checkContractAcountCreating(t, stub, [][]byte{[]byte("createContractAcount"), []byte(conAddr), []byte(testSgyProtoBase64String), []byte(testSgySignedStubProtoBase64)})
 	checkAcount(t, stub, conAddr, "0", 1)
 
 	//对合约地址进行转账
@@ -320,5 +339,134 @@ func TestTransfer(t *testing.T) {
 	checckTransfer(t, stub, [][]byte{[]byte("transfer"), []byte(txExampleProtoString)}, Org1Addr)
 	checkAcount(t, stub, Org1Addr, "890", 0)
 	checkAcount(t, stub, Org2Addr, "344", 0)
+
+}
+*/
+
+//测试对策略文件的修改签名操作
+func TestModyfyAsgy(t *testing.T) {
+	//初始化以及获取公私钥
+	scc := new(MyChaincode)
+	stub := shim.NewMockStub("ex02", scc)
+	Org1pubKey, _ := getKeyString("../ORG1pub.pem")
+	Org2pubKey, _ := getKeyString("../ORG2pub.pem")
+	Org1priKey, _ := getKeyString("../ORG1pri.pem")
+	Org2priKey, _ := getKeyString("../ORG2pri.pem")
+
+	//生成地址
+	Org1Addr := hashData(Org1pubKey, crypto.SHA1)
+	Org2Addr := hashData(Org2pubKey, crypto.SHA1)
+	checkInit(t, stub, [][]byte{[]byte("init"), Org1pubKey, []byte("1000"), Org2pubKey, []byte("234")})
+
+	//创建合约账户
+	conAddr := hashData([]byte("nicaicia"), crypto.SHA1)
+	fmt.Printf("conaddr  : %v\n", conAddr)
+
+	//检测是否能创建合约账户
+	//创建分配策略
+	tOrtinfo := &MemberInfo{
+		[]*MemberSingle{
+			&MemberSingle{
+				Sequence: 0,
+				Addr:     Org1Addr,
+				Ort:      0.9,
+			},
+			&MemberSingle{
+				Sequence: 1,
+				Addr:     Org2Addr,
+				Ort:      0.1,
+			},
+		},
+	}
+
+	testSgy := &AllocateSgy{
+		Addr:      conAddr,
+		ASgy:      tOrtinfo,
+		ID:        "0",
+		HasSigned: []bool{false, false},
+	}
+
+	testSgyProto, _ := proto.Marshal(testSgy)
+
+	testSgyProtoBase64String := base64.StdEncoding.EncodeToString(testSgyProto)
+
+	testSgyOrg1SignedInfo := &SigeForSgyInfo{
+		Addr:      Org1Addr,
+		ID:        "0",
+		Seq:       0,
+		Timestamp: time.Now().UTC().Unix(),
+		Ort:       0.9,
+	}
+	testSgyOrg1SignedInfoProto, _ := proto.Marshal(testSgyOrg1SignedInfo)
+	testSgyOrg1Signedmessage, _ := signMessage(testSgyOrg1SignedInfoProto, Org1priKey, crypto.SHA1)
+
+	testSgyOrg2SignedInfo := &SigeForSgyInfo{
+		Addr:      Org2Addr,
+		ID:        "0",
+		Seq:       1,
+		Timestamp: time.Now().UTC().Unix(),
+		Ort:       0.1,
+	}
+	testSgyOrg2SignedInfoProto, _ := proto.Marshal(testSgyOrg2SignedInfo)
+	testSgyOrg2Signedmessage, _ := signMessage(testSgyOrg2SignedInfoProto, Org2priKey, crypto.SHA1)
+
+	testSgySignedStub := &SigeForSgyStub{
+		Set: []*SigeForSgy{
+			{
+				testSgyOrg1SignedInfo,
+				string(testSgyOrg1Signedmessage),
+			},
+			{
+				testSgyOrg2SignedInfo,
+				string(testSgyOrg2Signedmessage),
+			},
+		},
+	}
+
+	testSgySignedStubProto, _ := proto.Marshal(testSgySignedStub)
+	testSgySignedStubProtoBase64 := base64.StdEncoding.EncodeToString(testSgySignedStubProto)
+
+	fmt.Printf("conaddr  : %v\n", conAddr)
+	priorId := checkContractAcountCreating(t, stub, [][]byte{[]byte("createContractAcount"), []byte(conAddr), []byte(testSgyProtoBase64String), []byte(testSgySignedStubProtoBase64)})
+
+	tOrtinfo = &MemberInfo{
+		[]*MemberSingle{
+			&MemberSingle{
+				Sequence: 0,
+				Addr:     Org1Addr,
+				Ort:      0.7,
+			},
+			&MemberSingle{
+				Sequence: 1,
+				Addr:     Org2Addr,
+				Ort:      0.3,
+			},
+		},
+	}
+
+	aPInfo := &ASgyProposeInfo{
+		ContractAddr: conAddr,
+		PriorID:      priorId,
+		UserAddr:     Org1Addr,
+		Mi:           tOrtinfo,
+		Timestamp:    time.Now().UTC().Unix(),
+		Seq:          0,
+	}
+
+	//对提议签名
+	aPInfoProto, _ := proto.Marshal(aPInfo)
+
+	aP := &ASgyPropose{}
+	script, _ := signMessage(aPInfoProto, Org1priKey, crypto.SHA1)
+	aP.Script = string(script)
+	aP.Asgip = aPInfo
+
+	aPproto, _ := proto.Marshal(aP)
+	aPprotoBase64 := base64.StdEncoding.EncodeToString(aPproto)
+
+	aPID := checkModifyAsgy(t, stub, [][]byte{[]byte("modifyAllocateByUser"), []byte(aPprotoBase64)})
+	fmt.Print("comehere ")
+
+	checkAsgy(t, stub, [][]byte{[]byte("queryCurrentSgyID"), []byte(aPID), []byte(conAddr)})
 
 }
