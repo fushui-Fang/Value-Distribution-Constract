@@ -111,3 +111,15 @@ func praseAsgyPropose(data []byte) (*ASgyPropose, error) {
 	}
 	return x, nil
 }
+
+func praseSigeForSgy(data []byte) (*SigeForSgy, error) {
+	if data == nil {
+		return nil, errors.New("[praseSigeForSgy]参数不正确")
+	}
+	x := &SigeForSgy{}
+	err := proto.Unmarshal(data, x)
+	if err != nil {
+		return nil, err
+	}
+	return x, nil
+}

@@ -26,6 +26,7 @@ type store interface {
 	querySgyByID() pb.Response
 	queryCurrentSgyID() pb.Response
 	modifyAllocateByUser() pb.Response
+	signForAsgy() pb.Response
 }
 
 //============================================================================================
@@ -355,4 +356,68 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 	}
 
 	return shim.Success([]byte(id))
+}
+
+//==============================================================================================
+//	为新编写的策略签名确认
+//	参数 1	签名集合的复合体
+//	返回处理结果
+//==============================================================================================
+
+func (s *chainCodeHub) signForAsgy() pb.Response {
+	//取出数据
+	sFAGBase64, err := praseBase64String(s.args[0])
+	if err != nil {
+		logger.Debug("[signForAsgy]" + err.Error())
+		return shim.Error("[signForAsgy]error happens when try to decode base64String")
+	}
+
+	sFAG, err := praseSigeForSgy(sFAGBase64)
+	if err != nil {
+		logger.Debug("[signForAsgy]" + err.Error())
+		return shim.Error("[signForAsgy]error happens when try to decode base64String")
+	}
+
+	//取出策略集
+	aSgy, err := praseAsgy(sFAG.Si.ID, sFAG.Si.Addr, s.stub)
+	if err != nil {
+		logger.Debug("[signForAsgy]" + err.Error())
+		return shim.Error("[signForAsgy]error happens when try to decode base64String")
+	}
+
+	err = VerifySgySingleSigned(s.stub, aSgy, sFAG)
+	if err != nil {
+		logger.Debug("[signForAsgy]" + err.Error())
+		return shim.Error("[signForAsgy]error happens when try to decode base64String")
+	}
+
+	isChange := true
+
+	for _, r := range aSgy.HasSigned {
+		isChange = isChange && r
+	}
+
+	//将修改后的分配策略存回
+	putAsgy(aSgy, s.stub)
+
+	//如果所有的用户都已经签字,则修改用户策略
+	if isChange == true {
+		conAccount, err := praseAccount(aSgy.Addr, s.stub)
+		if err != nil {
+			logger.Debug("[signForAsgy]" + err.Error())
+			return shim.Error("[signForAsgy]error happens when try to decode base64String")
+		}
+
+		//是否是修改的最新的用户策略
+		if conAccount.ID != aSgy.PriorID {
+			logger.Debug("[signForAsgy]提交的策略不是最新的修改策略")
+			return shim.Success([]byte("Success to submit teh user's sign message "))
+		}
+
+		//修改合约用户的最新合约
+		conAccount.ID = aSgy.ID
+		putAccount(conAccount.Addr, conAccount, s.stub)
+	}
+
+	return shim.Success([]byte("Success to submit teh user's sign message "))
 }

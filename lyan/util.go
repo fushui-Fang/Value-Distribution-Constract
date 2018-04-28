@@ -132,6 +132,9 @@ func InitVerifySgySigned(stub shim.ChaincodeStubInterface, m *AllocateSgy, signS
 	return nil
 }
 
+//===============================================================================================
+//
+//===============================================================================================
 func VerifySgySingleSigned(stub shim.ChaincodeStubInterface, m *AllocateSgy, singleSigned *SigeForSgy) error {
 	seq := singleSigned.Si.Seq
 	//logger.Debug("序号是")
@@ -173,7 +176,7 @@ func VerifySgySingleSigned(stub shim.ChaincodeStubInterface, m *AllocateSgy, sin
 	}
 
 	//验证时间戳
-	if time.Now().UTC().Unix()-singleSigned.Si.GetTimestamp() > 120 {
+	if time.Now().UTC().Unix()-singleSigned.Si.GetTimestamp() > 3600 {
 		logger.Error(ErrTimeOut.Error())
 		return errors.New("VerifySgySigned:签名过时")
 	}
