@@ -10,8 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"proto"
 	"time"
+
+	"chaincode/mycc/proto"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )

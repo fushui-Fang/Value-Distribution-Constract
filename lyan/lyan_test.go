@@ -1,10 +1,10 @@
 package lyan
 
 import (
+	"chaincode/mycc/proto"
 	"crypto"
 	"encoding/base64"
 	"fmt"
-	"mypro/hyperledger-coin/proto"
 	"testing"
 	"time"
 

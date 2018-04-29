@@ -3,7 +3,8 @@ package lyan
 import (
 	"encoding/base64"
 	"errors"
-	"proto"
+
+	"chaincode/mycc/proto"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )

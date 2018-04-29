@@ -23,7 +23,7 @@ It has these top-level messages:
 */
 package lyan
 
-import proto "github.com/golang/protobuf/proto"
+import proto "chaincode/mycc/proto"
 import fmt "fmt"
 import math "math"
 

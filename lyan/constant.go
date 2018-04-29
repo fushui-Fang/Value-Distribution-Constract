@@ -1,6 +1,6 @@
 package lyan
 
-import logging "mypro/mycc/go-logging"
+import logging "chaincode/mycc/go-logging"
 
 var (
 	logger = logging.MustGetLogger("lyan")
