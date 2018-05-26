@@ -360,7 +360,7 @@ func (s *chainCodeHub) modifyAllocateByUser() pb.Response {
 
 //==============================================================================================
 //	为新编写的策略签名确认
-//	参数 1	签名集合的复合体
+//	参数 1	签名集合的复合体 2合约地址　３合约当前ID
 //	返回处理结果
 //==============================================================================================
 
@@ -378,12 +378,18 @@ func (s *chainCodeHub) signForAsgy() pb.Response {
 		return shim.Error("[signForAsgy]error happens when try to decode base64String")
 	}
 
+	//取出要改变的合约的信息
+	ID := s.args[2]
+	Addr := s.args[1]
+
 	//取出策略集
-	aSgy, err := praseAsgy(sFAG.Si.ID, sFAG.Si.Addr, s.stub)
+	aSgy, err := praseAsgy(ID, Addr, s.stub)
 	if err != nil {
 		logger.Debug("[signForAsgy]" + err.Error())
 		return shim.Error("[signForAsgy]error happens when try to decode base64String")
 	}
+	logger.Debug("signForAsgy小伙子在哪呢--去策略有问题")
+	logger.Debug(aSgy.Addr)
 
 	err = VerifySgySingleSigned(s.stub, aSgy, sFAG)
 	if err != nil {
@@ -391,9 +397,13 @@ func (s *chainCodeHub) signForAsgy() pb.Response {
 		return shim.Error("[signForAsgy]error happens when try to decode base64String")
 	}
 
+	logger.Debug("[signForAsgy] come here!\n\n\n")
 	isChange := true
 
+	//aSgy.HasSigned[sFAG.Si.Seq] = true
+
 	for _, r := range aSgy.HasSigned {
+
 		isChange = isChange && r
 	}
 
@@ -421,3 +431,4 @@ func (s *chainCodeHub) signForAsgy() pb.Response {
 
 	return shim.Success([]byte("Success to submit teh user's sign message "))
 }
+
