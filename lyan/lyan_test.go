@@ -1,12 +1,13 @@
 package lyan
 
 import (
-	"chaincode/mycc/proto"
 	"crypto"
 	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
+
+	"proto"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -101,7 +102,7 @@ func checckTransfer(t *testing.T, stub *shim.MockStub, args [][]byte, addr strin
 }
 
 func checkContractAcountCreating(t *testing.T, stub *shim.MockStub, args [][]byte) string {
-	logger.Debugf("chechContractAcountCreating args:%v", args)
+	//logger.Debugf("chechContractAcountCreating args:%v", args)
 	res := stub.MockInvoke("1", args)
 	if res.Status != shim.OK {
 		fmt.Println("chechContractAcountCreating", args, "failed", string(res.Message))
@@ -119,6 +120,7 @@ func checkModifyAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) string {
 		fmt.Println("checkModifyAsgy", args, "failed", string(res.Message))
 		t.FailNow()
 	}
+	logger.Debug("[checkModifyAsgy]" + string(res.Payload))
 
 	return string(res.Payload)
 }
@@ -129,7 +131,8 @@ func checkAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) error {
 		fmt.Println("checkAsgy", args, "failed", string(res.Message))
 		t.FailNow()
 	}
-	logger.Debug("成功将策略提交")
+	logger.Debug("comehere")
+	logger.Debug(string(res.Payload))
 	return nil
 }
 
@@ -138,7 +141,8 @@ func checkAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) error {
 //
 //====================================================================================
 
-/*func TestInit(t *testing.T) {
+/*
+func TestInit(t *testing.T) {
 	scc := new(MyChaincode)
 	stub := shim.NewMockStub("ex02", scc)
 	Org1pubKey, _ := getKeyString("../ORG1pub.pem")
@@ -161,9 +165,7 @@ func checkAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) error {
 	checkQueryAccount(t, stub, [][]byte{[]byte("queryAcccount"), []byte(Org2Addr)})
 
 }
-
 */
-
 /*
 func TestTransfer(t *testing.T) {
 
@@ -341,6 +343,7 @@ func TestTransfer(t *testing.T) {
 	checkAcount(t, stub, Org2Addr, "344", 0)
 
 }
+
 */
 
 //测试对策略文件的修改签名操作
@@ -466,7 +469,63 @@ func TestModyfyAsgy(t *testing.T) {
 
 	aPID := checkModifyAsgy(t, stub, [][]byte{[]byte("modifyAllocateByUser"), []byte(aPprotoBase64)})
 	fmt.Print("comehere ")
+	logger.Debug(aPID)
 
-	checkAsgy(t, stub, [][]byte{[]byte("queryCurrentSgyID"), []byte(aPID), []byte(conAddr)})
+	checkAsgy(t, stub, [][]byte{[]byte("queryCurrentSgyID"), []byte(conAddr)})
 
+	//接下来签名换策略
+
+	testSgyOrg1SignedInfo = &SigeForSgyInfo{
+		Addr:      Org1Addr,
+		ID:        aPID,
+		Seq:       0,
+		Timestamp: time.Now().UTC().Unix(),
+		Ort:       0.7,
+	}
+	testSgyOrg1SignedInfoProto, _ = proto.Marshal(testSgyOrg1SignedInfo)
+	testSgyOrg1Signedmessage, _ = signMessage(testSgyOrg1SignedInfoProto, Org1priKey, crypto.SHA1)
+
+	testSgyOrg1Signed := &SigeForSgy{
+		Si:     testSgyOrg1SignedInfo,
+		Script: string(testSgyOrg1Signedmessage),
+	}
+
+	testSgyOrg1SignedProto, _ := proto.Marshal(testSgyOrg1Signed)
+	testSgyOrg1SignedProtoBase64 := base64.StdEncoding.EncodeToString(testSgyOrg1SignedProto)
+
+	checkModifyAsgy(t, stub, [][]byte{[]byte("signForAsgy"), []byte(testSgyOrg1SignedProtoBase64), []byte(conAddr), []byte(aPID)})
+
+	//org2签名
+
+	testSgyOrg1SignedInfo = &SigeForSgyInfo{
+		Addr:      Org2Addr,
+		ID:        aPID,
+		Seq:       1,
+		Timestamp: time.Now().UTC().Unix(),
+		Ort:       0.3,
+	}
+	testSgyOrg1SignedInfoProto, _ = proto.Marshal(testSgyOrg1SignedInfo)
+	testSgyOrg1Signedmessage, _ = signMessage(testSgyOrg1SignedInfoProto, Org2priKey, crypto.SHA1)
+
+	testSgyOrg1Signed = &SigeForSgy{
+		Si:     testSgyOrg1SignedInfo,
+		Script: string(testSgyOrg1Signedmessage),
+	}
+
+	testSgyOrg1SignedProto, _ = proto.Marshal(testSgyOrg1Signed)
+	testSgyOrg1SignedProtoBase64 = base64.StdEncoding.EncodeToString(testSgyOrg1SignedProto)
+
+	checkModifyAsgy(t, stub, [][]byte{[]byte("signForAsgy"), []byte(testSgyOrg1SignedProtoBase64), []byte(conAddr), []byte(aPID)})
+	checkAsgy(t, stub, [][]byte{[]byte("queryCurrentSgyID"), []byte(conAddr)})
+}
+
+func checkSignAsgy(t *testing.T, stub *shim.MockStub, args [][]byte) error {
+	res := stub.MockInvoke("1", args)
+	if res.Status != shim.OK {
+		fmt.Println("checkAsgy", args, "failed", string(res.Message))
+		t.FailNow()
+	}
+	logger.Debug("成功将策略签名")
+	//logger.Debug(string(res.Payload))
+	return nil
 }
